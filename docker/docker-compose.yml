@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  mcp-database-server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      DB_TYPE: postgresql
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ecommerce
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_SSL: "false"
+      ALLOW_WRITE: "false"
+      MAX_ROWS: "1000"
+      QUERY_TIMEOUT: "30000"
+      LOG_LEVEL: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    stdin_open: true
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ecommerce
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
