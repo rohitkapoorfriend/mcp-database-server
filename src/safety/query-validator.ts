@@ -1,10 +1,6 @@
-/**
- * SQL query validator for injection prevention and DDL/DML blocking.
- */
-
 import { logger } from "../utils/logger.js";
 
-/** Dangerous SQL keywords that indicate write/DDL operations */
+// keywords that signal a write/DDL operation
 const WRITE_KEYWORDS = [
   "INSERT",
   "UPDATE",
@@ -23,7 +19,7 @@ const WRITE_KEYWORDS = [
   "CALL",
 ] as const;
 
-/** Patterns that indicate SQL injection attempts */
+// common injection vectors
 const INJECTION_PATTERNS: RegExp[] = [
   /;\s*(DROP|ALTER|DELETE|INSERT|UPDATE|CREATE|TRUNCATE|GRANT|REVOKE)/i,
   /--\s*$/m,
@@ -41,10 +37,6 @@ export interface ValidationResult {
   error?: string;
 }
 
-/**
- * Validates a SQL query for safety.
- * Blocks write operations unless explicitly allowed.
- */
 export function validateQuery(query: string, allowWrite: boolean): ValidationResult {
   if (!query || query.trim().length === 0) {
     return { valid: false, error: "Query cannot be empty." };
@@ -65,7 +57,7 @@ export function validateQuery(query: string, allowWrite: boolean): ValidationRes
 
   // If write operations are not allowed, check for write keywords
   if (!allowWrite) {
-    // Strip string literals and comments before checking keywords
+    // strip out string literals so we don't match keywords inside values
     const normalized = stripStringsAndComments(trimmed);
 
     for (const keyword of WRITE_KEYWORDS) {
@@ -93,23 +85,14 @@ export function validateQuery(query: string, allowWrite: boolean): ValidationRes
   return { valid: true };
 }
 
-/** Strips string literals and comments from SQL for safe keyword detection */
 function stripStringsAndComments(sql: string): string {
-  // Remove single-quoted strings
   let result = sql.replace(/'(?:[^'\\]|\\.)*'/g, "''");
-  // Remove double-quoted identifiers
   result = result.replace(/"(?:[^"\\]|\\.)*"/g, '""');
-  // Remove single-line comments
   result = result.replace(/--[^\n]*/g, "");
-  // Remove multi-line comments
   result = result.replace(/\/\*[\s\S]*?\*\//g, "");
   return result;
 }
 
-/**
- * Validates a table name to prevent injection.
- * Only allows alphanumeric characters, underscores, and dots (for schema.table).
- */
 export function validateTableName(tableName: string): ValidationResult {
   if (!tableName || tableName.trim().length === 0) {
     return { valid: false, error: "Table name cannot be empty." };

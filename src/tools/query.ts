@@ -1,7 +1,3 @@
-/**
- * MCP Tool: execute_query — run SELECT queries (read-only by default).
- */
-
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseAdapter } from "../databases/index.js";
@@ -11,7 +7,6 @@ import { sanitizeLimit } from "../safety/sanitizer.js";
 import { formatResult } from "../utils/formatter.js";
 import { logger } from "../utils/logger.js";
 
-/** Registers the execute_query tool with the MCP server */
 export function registerQueryTool(server: McpServer, db: DatabaseAdapter, config: Config): void {
   server.tool(
     "execute_query",
@@ -33,7 +28,6 @@ export function registerQueryTool(server: McpServer, db: DatabaseAdapter, config
     async ({ query, format, limit }) => {
       logger.debug("execute_query called", { query: query.substring(0, 200) });
 
-      // Validate query safety
       const validation = validateQuery(query, config.allowWrite);
       if (!validation.valid) {
         return {
@@ -42,11 +36,10 @@ export function registerQueryTool(server: McpServer, db: DatabaseAdapter, config
         };
       }
 
-      // Apply row limit
       const effectiveLimit = sanitizeLimit(limit, config.maxRows);
       let limitedQuery = query.trim().replace(/;\s*$/, "");
 
-      // Add LIMIT clause if not already present (for SQL databases)
+      // auto-append LIMIT if missing (sql only)
       if (db.getType() !== "mongodb" && !/\bLIMIT\b/i.test(limitedQuery)) {
         limitedQuery += ` LIMIT ${effectiveLimit}`;
       }

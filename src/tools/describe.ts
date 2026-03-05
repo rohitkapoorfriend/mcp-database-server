@@ -1,14 +1,9 @@
-/**
- * MCP Tool: describe_table — detailed info about a specific table.
- */
-
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseAdapter } from "../databases/index.js";
 import { validateTableName } from "../safety/query-validator.js";
 import { logger } from "../utils/logger.js";
 
-/** Registers the describe_table tool with the MCP server */
 export function registerDescribeTool(server: McpServer, db: DatabaseAdapter): void {
   server.tool(
     "describe_table",
@@ -19,7 +14,6 @@ export function registerDescribeTool(server: McpServer, db: DatabaseAdapter): vo
     async ({ table_name }) => {
       logger.debug("describe_table called", { table_name });
 
-      // Validate table name
       const nameValidation = validateTableName(table_name);
       if (!nameValidation.valid) {
         return {
@@ -29,7 +23,6 @@ export function registerDescribeTool(server: McpServer, db: DatabaseAdapter): vo
       }
 
       try {
-        // Check if table exists
         const exists = await db.tableExists(table_name);
         if (!exists) {
           return {
@@ -65,7 +58,7 @@ export function registerDescribeTool(server: McpServer, db: DatabaseAdapter): vo
           output += `| ${i + 1} | ${col.name} | ${col.type} | ${col.nullable ? "YES" : "NO"} | ${col.defaultValue ?? "-"} | ${constraints.join(", ") || "-"} |\n`;
         }
 
-        // Sample values per column
+        // show a few values per column so the AI knows what data looks like
         output += `\n## Sample Values\n\n`;
         for (const col of info.columns) {
           try {

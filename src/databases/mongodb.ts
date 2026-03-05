@@ -1,7 +1,3 @@
-/**
- * MongoDB database adapter using the official MongoDB driver.
- */
-
 import { MongoClient, type Db, type Document } from "mongodb";
 import type {
   DatabaseAdapter,
@@ -23,6 +19,7 @@ export class MongoDBAdapter implements DatabaseAdapter {
   }
 
   async connect(): Promise<void> {
+    // TODO: support connection string from env var directly (e.g. MONGO_URI)
     const uri = `mongodb://${this.config.dbUser}:${encodeURIComponent(this.config.dbPassword)}@${this.config.dbHost}:${this.config.dbPort}/${this.config.dbName}`;
     this.client = new MongoClient(uri);
     await this.client.connect();
@@ -53,7 +50,7 @@ export class MongoDBAdapter implements DatabaseAdapter {
   async executeQuery(query: string, timeout: number): Promise<RawQueryResult> {
     const db = this.getDb();
 
-    // Parse the query as JSON: { collection: "name", operation: "find", filter: {}, limit: N }
+    // we accept queries as json: { collection, filter, limit }
     let parsed: {
       collection: string;
       operation?: string;
@@ -80,7 +77,6 @@ export class MongoDBAdapter implements DatabaseAdapter {
       return { columns: [], rows: [], rowCount: 0 };
     }
 
-    // Infer columns from first document
     const columns = Object.keys(docs[0]);
     const rows = docs.map((doc) => {
       const row: Record<string, unknown> = {};
@@ -103,10 +99,8 @@ export class MongoDBAdapter implements DatabaseAdapter {
     const db = this.getDb();
     const collection = db.collection(tableName);
 
-    // Sample documents to infer schema
+    // infer schema from a sample of documents since mongo is schemaless
     const samples = await collection.find().limit(100).toArray();
-
-    // Infer columns from all sampled documents
     const fieldTypes = new Map<string, Set<string>>();
     for (const doc of samples) {
       for (const [key, value] of Object.entries(doc)) {
@@ -126,7 +120,6 @@ export class MongoDBAdapter implements DatabaseAdapter {
       isForeignKey: false,
     }));
 
-    // Get indexes
     const rawIndexes = await collection.indexes();
     const indexes = rawIndexes.map((idx) => ({
       name: idx.name ?? "unknown",

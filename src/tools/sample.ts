@@ -1,7 +1,3 @@
-/**
- * MCP Tool: sample_data — get sample rows from a table.
- */
-
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseAdapter } from "../databases/index.js";
@@ -11,7 +7,6 @@ import { sanitizeLimit } from "../safety/sanitizer.js";
 import { formatAsTable } from "../utils/formatter.js";
 import { logger } from "../utils/logger.js";
 
-/** Registers the sample_data tool with the MCP server */
 export function registerSampleTool(server: McpServer, db: DatabaseAdapter, config: Config): void {
   server.tool(
     "sample_data",
@@ -29,7 +24,6 @@ export function registerSampleTool(server: McpServer, db: DatabaseAdapter, confi
     async ({ table_name, limit }) => {
       logger.debug("sample_data called", { table_name, limit });
 
-      // Validate table name
       const nameValidation = validateTableName(table_name);
       if (!nameValidation.valid) {
         return {
@@ -39,7 +33,6 @@ export function registerSampleTool(server: McpServer, db: DatabaseAdapter, confi
       }
 
       try {
-        // Check if table exists
         const exists = await db.tableExists(table_name);
         if (!exists) {
           return {

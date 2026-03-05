@@ -1,14 +1,9 @@
-/**
- * MCP Tool: table_stats — row counts, size, index info.
- */
-
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseAdapter } from "../databases/index.js";
 import { validateTableName } from "../safety/query-validator.js";
 import { logger } from "../utils/logger.js";
 
-/** Formats bytes into a human-readable size string */
 function formatBytes(bytes: number | null): string {
   if (bytes === null || bytes === 0) return "N/A";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -21,7 +16,6 @@ function formatBytes(bytes: number | null): string {
   return `${size.toFixed(1)} ${units[unitIndex]}`;
 }
 
-/** Registers the table_stats tool with the MCP server */
 export function registerStatsTool(server: McpServer, db: DatabaseAdapter): void {
   server.tool(
     "table_stats",
@@ -35,7 +29,6 @@ export function registerStatsTool(server: McpServer, db: DatabaseAdapter): void 
     async ({ table_name }) => {
       logger.debug("table_stats called", { table_name });
 
-      // Validate table name if provided
       if (table_name) {
         const nameValidation = validateTableName(table_name);
         if (!nameValidation.valid) {

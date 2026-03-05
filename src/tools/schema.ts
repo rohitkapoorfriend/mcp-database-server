@@ -1,13 +1,8 @@
-/**
- * MCP Tool: get_schema — introspect tables, columns, types, relationships.
- */
-
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseAdapter } from "../databases/index.js";
 import { logger } from "../utils/logger.js";
 
-/** Registers the get_schema tool with the MCP server */
 export function registerSchemaTool(server: McpServer, db: DatabaseAdapter): void {
   server.tool(
     "get_schema",

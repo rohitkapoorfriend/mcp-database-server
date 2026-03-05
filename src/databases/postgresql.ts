@@ -1,7 +1,3 @@
-/**
- * PostgreSQL database adapter using the pg driver.
- */
-
 import pg from "pg";
 import type {
   DatabaseAdapter,
@@ -34,7 +30,7 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
       idleTimeoutMillis: 30000,
     });
 
-    // Test connection
+    // quick connectivity check
     const client = await this.pool.connect();
     client.release();
     logger.info("Connected to PostgreSQL", { host: this.config.dbHost, database: this.config.dbName });
@@ -88,7 +84,7 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
   async getTableInfo(tableName: string): Promise<TableInfo> {
     const pool = this.getPool();
 
-    // Get columns
+    // columns + PK/FK info in a single query
     const colResult = await pool.query(
       `SELECT
         c.column_name, c.data_type, c.is_nullable, c.column_default,
@@ -134,7 +130,7 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
         : {}),
     }));
 
-    // Get indexes
+    // TODO: might want to cache index info for perf on large schemas
     const idxResult = await pool.query(
       `SELECT
         i.relname as index_name,
@@ -158,7 +154,7 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
       isPrimary: r.is_primary as boolean,
     }));
 
-    // Get row count
+    // pg_class reltuples is an estimate, but good enough for display
     const countResult = await pool.query(
       `SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = $1`,
       [tableName]

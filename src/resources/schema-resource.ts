@@ -1,12 +1,7 @@
-/**
- * MCP Resource: database://schema — expose database schema as a readable resource.
- */
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseAdapter } from "../databases/index.js";
 import { logger } from "../utils/logger.js";
 
-/** Registers the database schema resource with the MCP server */
 export function registerSchemaResource(server: McpServer, db: DatabaseAdapter): void {
   server.resource(
     "database-schema",

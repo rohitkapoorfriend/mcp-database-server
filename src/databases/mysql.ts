@@ -1,7 +1,3 @@
-/**
- * MySQL database adapter using mysql2 driver.
- */
-
 import mysql from "mysql2/promise";
 import type {
   DatabaseAdapter,
@@ -34,7 +30,6 @@ export class MySQLAdapter implements DatabaseAdapter {
       waitForConnections: true,
     });
 
-    // Test connection
     const conn = await this.pool.getConnection();
     conn.release();
     logger.info("Connected to MySQL", { host: this.config.dbHost, database: this.config.dbName });
@@ -88,7 +83,6 @@ export class MySQLAdapter implements DatabaseAdapter {
   async getTableInfo(tableName: string): Promise<TableInfo> {
     const pool = this.getPool();
 
-    // Get columns
     const [colRows] = await pool.query(
       `SELECT
         COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_KEY
@@ -98,7 +92,7 @@ export class MySQLAdapter implements DatabaseAdapter {
       [this.config.dbName, tableName]
     );
 
-    // Get foreign keys
+    // fk refs
     const [fkRows] = await pool.query(
       `SELECT
         COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
@@ -128,7 +122,6 @@ export class MySQLAdapter implements DatabaseAdapter {
       };
     });
 
-    // Get indexes
     const [idxRows] = await pool.query(`SHOW INDEX FROM \`${tableName}\``);
     const indexMap = new Map<string, IndexInfo>();
     for (const row of idxRows as Record<string, unknown>[]) {
@@ -144,7 +137,6 @@ export class MySQLAdapter implements DatabaseAdapter {
       indexMap.get(name)!.columns.push(row.Column_name as string);
     }
 
-    // Get row count estimate
     const [countRows] = await pool.query(
       `SELECT TABLE_ROWS FROM information_schema.tables WHERE table_schema = ? AND table_name = ?`,
       [this.config.dbName, tableName]

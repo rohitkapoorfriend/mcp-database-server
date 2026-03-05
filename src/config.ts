@@ -1,7 +1,3 @@
-/**
- * Environment configuration loader with validation.
- */
-
 import { z } from "zod";
 import { logger } from "./utils/logger.js";
 
@@ -27,7 +23,6 @@ const ConfigSchema = z.object({
 
 export type Config = z.infer<typeof ConfigSchema>;
 
-/** Loads configuration from environment variables */
 export function loadConfig(): Config {
   const raw = {
     dbType: process.env.DB_TYPE,

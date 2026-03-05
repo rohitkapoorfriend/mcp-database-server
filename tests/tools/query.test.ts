@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { formatResult, formatAsTable, formatAsJson, formatAsCsv } from "../../src/utils/formatter.js";
 import type { QueryResult } from "../../src/utils/formatter.js";
 

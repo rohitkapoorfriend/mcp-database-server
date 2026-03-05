@@ -1,27 +1,22 @@
 # mcp-database-server
 
-[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![MCP](https://img.shields.io/badge/MCP-1.x-purple.svg)](https://modelcontextprotocol.io/)
+An MCP server that lets AI agents (Claude, Cursor, etc.) query and explore databases safely. Built with TypeScript, supports PostgreSQL, MySQL, and MongoDB.
 
-A production-ready **Model Context Protocol (MCP)** server that enables AI agents (Claude, GPT, Cursor) to securely query and analyze databases using natural language.
+## Why?
 
-## What is MCP?
-
-The **Model Context Protocol (MCP)** is an open standard that allows AI assistants to connect to external tools and data sources. Think of it as a USB-C port for AI — a universal interface that lets any AI model talk to any tool. This server implements MCP to give AI agents safe, read-only access to your databases.
+I wanted a way to let Claude and other AI tools talk to my databases without giving them raw access. This server sits in between — it validates queries, blocks writes by default, and formats results so the AI can actually understand them.
 
 ## Features
 
-- **Multi-database support** — PostgreSQL, MySQL, MongoDB
-- **Read-only by default** — Only SELECT queries allowed unless explicitly enabled
-- **SQL injection prevention** — Query validation, input sanitization, dangerous pattern detection
-- **5 powerful tools** — Query, schema, describe, sample data, table stats
-- **AI-friendly output** — Markdown tables, JSON, CSV formats
-- **MCP resources** — Expose database schema as a readable resource
-- **MCP prompts** — Built-in query helper for AI agents
-- **Configurable safety** — Row limits, query timeouts, write protection
-- **Docker ready** — Multi-stage build with sample PostgreSQL database
+- PostgreSQL, MySQL, MongoDB support
+- Read-only by default (SELECT only, unless you flip `ALLOW_WRITE`)
+- SQL injection detection — blocks dangerous patterns, validates inputs
+- 5 MCP tools: query, schema, describe, sample data, table stats
+- Output as markdown tables, JSON, or CSV
+- Schema exposed as an MCP resource
+- Built-in query helper prompt
+- Row limits, query timeouts, write protection
+- Docker setup with sample ecommerce data
 
 ## Quick Start
 
@@ -198,36 +193,13 @@ docker-compose up -d
 # - order_items (30 rows)
 ```
 
-## Architecture
+## How it works
 
-```mermaid
-graph TB
-    AI[AI Agent<br>Claude / GPT / Cursor] -->|MCP Protocol<br>JSON-RPC over stdio| Server[MCP Database Server]
-
-    Server --> Tools[Tools Layer]
-    Server --> Resources[Resources Layer]
-    Server --> Prompts[Prompts Layer]
-
-    Tools --> Safety[Safety Layer<br>Query Validator + Sanitizer]
-    Safety --> Adapter[Database Adapter]
-
-    Adapter --> PG[PostgreSQL<br>pg driver]
-    Adapter --> MY[MySQL<br>mysql2 driver]
-    Adapter --> MO[MongoDB<br>mongodb driver]
-
-    subgraph Tools Layer
-        T1[execute_query]
-        T2[get_schema]
-        T3[describe_table]
-        T4[sample_data]
-        T5[table_stats]
-    end
-
-    subgraph Safety Layer
-        S1[Query Validator<br>SQL injection prevention]
-        S2[Sanitizer<br>Input/output safety]
-    end
 ```
+AI Agent (Claude/Cursor) → MCP (JSON-RPC over stdio) → This Server → Safety Layer → DB Adapter → PostgreSQL/MySQL/MongoDB
+```
+
+The safety layer validates every query before it hits the database — checks for injection patterns, blocks write operations in read-only mode, and enforces row/timeout limits.
 
 ## Testing
 

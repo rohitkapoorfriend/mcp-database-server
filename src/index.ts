@@ -1,10 +1,5 @@
 #!/usr/bin/env node
 
-/**
- * MCP Database Server — Entry point.
- * Creates the MCP server, registers tools/resources/prompts, and connects transport.
- */
-
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
@@ -21,13 +16,9 @@ import { logger } from "./utils/logger.js";
 async function main(): Promise<void> {
   logger.info("Starting MCP Database Server...");
 
-  // Load configuration
   const config = loadConfig();
-
-  // Create database adapter
   const db = createDatabaseAdapter(config);
 
-  // Connect to the database
   try {
     await db.connect();
   } catch (err) {
@@ -36,32 +27,24 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Create MCP server
   const server = new McpServer({
     name: "mcp-database-server",
     version: "1.0.0",
   });
 
-  // Register tools
   registerQueryTool(server, db, config);
   registerSchemaTool(server, db);
   registerDescribeTool(server, db);
   registerSampleTool(server, db, config);
   registerStatsTool(server, db);
-
-  // Register resources
   registerSchemaResource(server, db);
-
-  // Register prompts
   registerQueryHelperPrompt(server, db);
 
-  // Set up transport and connect
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
   logger.info("MCP Database Server running on stdio transport");
 
-  // Graceful shutdown
   const shutdown = async (): Promise<void> => {
     logger.info("Shutting down MCP Database Server...");
     await db.disconnect();

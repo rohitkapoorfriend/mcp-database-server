@@ -1,13 +1,8 @@
-/**
- * MCP Prompt: query_helper — helps AI agents write correct queries.
- */
-
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DatabaseAdapter } from "../databases/index.js";
 import { logger } from "../utils/logger.js";
 
-/** Returns database-specific syntax hints */
 function getSyntaxHints(dbType: string): string {
   switch (dbType) {
     case "postgresql":
@@ -51,7 +46,6 @@ function getSyntaxHints(dbType: string): string {
   }
 }
 
-/** Registers the query_helper prompt with the MCP server */
 export function registerQueryHelperPrompt(server: McpServer, db: DatabaseAdapter): void {
   server.prompt(
     "query_helper",

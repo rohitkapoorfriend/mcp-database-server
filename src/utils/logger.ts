@@ -1,7 +1,4 @@
-/**
- * Structured logger that outputs to stderr only.
- * stdout is reserved for MCP JSON-RPC protocol messages.
- */
+// logs go to stderr so we don't interfere with the MCP json-rpc on stdout
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -14,12 +11,10 @@ const LOG_LEVELS: Record<LogLevel, number> = {
 
 let currentLevel: LogLevel = "info";
 
-/** Sets the minimum log level */
 export function setLogLevel(level: LogLevel): void {
   currentLevel = level;
 }
 
-/** Returns the current log level */
 export function getLogLevel(): LogLevel {
   return currentLevel;
 }
@@ -37,28 +32,24 @@ function formatMessage(level: LogLevel, message: string, data?: Record<string, u
   return base;
 }
 
-/** Log a debug message to stderr */
 export function debug(message: string, data?: Record<string, unknown>): void {
   if (shouldLog("debug")) {
     console.error(formatMessage("debug", message, data));
   }
 }
 
-/** Log an info message to stderr */
 export function info(message: string, data?: Record<string, unknown>): void {
   if (shouldLog("info")) {
     console.error(formatMessage("info", message, data));
   }
 }
 
-/** Log a warning message to stderr */
 export function warn(message: string, data?: Record<string, unknown>): void {
   if (shouldLog("warn")) {
     console.error(formatMessage("warn", message, data));
   }
 }
 
-/** Log an error message to stderr */
 export function error(message: string, data?: Record<string, unknown>): void {
   if (shouldLog("error")) {
     console.error(formatMessage("error", message, data));
