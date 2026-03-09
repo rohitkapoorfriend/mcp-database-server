@@ -30,7 +30,6 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
       idleTimeoutMillis: 30000,
     });
 
-    // quick connectivity check
     const client = await this.pool.connect();
     client.release();
     logger.info("Connected to PostgreSQL", { host: this.config.dbHost, database: this.config.dbName });
@@ -84,7 +83,6 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
   async getTableInfo(tableName: string): Promise<TableInfo> {
     const pool = this.getPool();
 
-    // columns + PK/FK info in a single query
     const colResult = await pool.query(
       `SELECT
         c.column_name, c.data_type, c.is_nullable, c.column_default,
@@ -130,7 +128,6 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
         : {}),
     }));
 
-    // TODO: might want to cache index info for perf on large schemas
     const idxResult = await pool.query(
       `SELECT
         i.relname as index_name,
@@ -147,14 +144,28 @@ export class PostgreSQLAdapter implements DatabaseAdapter {
       [tableName]
     );
 
-    const indexes: IndexInfo[] = idxResult.rows.map((r: Record<string, unknown>) => ({
-      name: r.index_name as string,
-      columns: r.columns as string[],
-      isUnique: r.is_unique as boolean,
-      isPrimary: r.is_primary as boolean,
-    }));
+    const indexes: IndexInfo[] = idxResult.rows.map((r: Record<string, unknown>) => {
+      // array_agg can return a JS array or a Postgres "{col1,col2}" string
+      // depending on the pg driver version — normalise both cases
+      let cols: string[];
+      const raw = r.columns;
+      if (Array.isArray(raw)) {
+        cols = raw as string[];
+      } else if (typeof raw === "string") {
+        // strip curly braces and split: "{id,name}" → ["id", "name"]
+        cols = raw.replace(/^\{/, "").replace(/\}$/, "").split(",").filter(Boolean);
+      } else {
+        cols = [];
+      }
 
-    // pg_class reltuples is an estimate, but good enough for display
+      return {
+        name: r.index_name as string,
+        columns: cols,
+        isUnique: r.is_unique as boolean,
+        isPrimary: r.is_primary as boolean,
+      };
+    });
+
     const countResult = await pool.query(
       `SELECT reltuples::bigint AS estimate FROM pg_class WHERE relname = $1`,
       [tableName]
