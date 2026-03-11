@@ -17,9 +17,12 @@ const WRITE_KEYWORDS = [
   "EXEC",
   "EXECUTE",
   "CALL",
+  "RENAME",
+  "LOCK",
+  "UNLOCK",
 ] as const;
 
-// common injection vectors
+// common injection vectors — extended with more known bypass patterns
 const INJECTION_PATTERNS: RegExp[] = [
   /;\s*(DROP|ALTER|DELETE|INSERT|UPDATE|CREATE|TRUNCATE|GRANT|REVOKE)/i,
   /--\s*$/m,
@@ -30,6 +33,13 @@ const INJECTION_PATTERNS: RegExp[] = [
   /\bLOAD_FILE\s*\(/i,
   /\bINTO\s+OUTFILE\b/i,
   /\bINTO\s+DUMPFILE\b/i,
+  // additional patterns
+  /\bWAITFOR\s+DELAY\b/i,           // MSSQL time-delay attack
+  /\bPG_SLEEP\s*\(/i,               // PostgreSQL sleep
+  /\bxp_cmdshell\b/i,               // MSSQL command execution
+  /\bCONVERT\s*\(.*\bUSING\b/i,    // charset-based injection
+  /0x[0-9a-fA-F]+/,                 // hex-encoded payloads
+  /CHAR\s*\(\s*\d+/i,               // CHAR() obfuscation
 ];
 
 export interface ValidationResult {
@@ -43,6 +53,10 @@ export function validateQuery(query: string, allowWrite: boolean): ValidationRes
   }
 
   const trimmed = query.trim();
+
+  if (trimmed.length > 10_000) {
+    return { valid: false, error: "Query exceeds maximum allowed length of 10,000 characters." };
+  }
 
   // Check for injection patterns
   for (const pattern of INJECTION_PATTERNS) {
@@ -61,7 +75,6 @@ export function validateQuery(query: string, allowWrite: boolean): ValidationRes
     const normalized = stripStringsAndComments(trimmed);
 
     for (const keyword of WRITE_KEYWORDS) {
-      // Match keyword as a standalone word (not inside identifiers)
       const regex = new RegExp(`\\b${keyword}\\b`, "i");
       if (regex.test(normalized)) {
         logger.warn("Write operation blocked", { keyword, query: trimmed.substring(0, 100) });
@@ -98,8 +111,9 @@ export function validateTableName(tableName: string): ValidationResult {
     return { valid: false, error: "Table name cannot be empty." };
   }
 
-  const validPattern = /^[a-zA-Z_][a-zA-Z0-9_.]*$/;
-  if (!validPattern.test(tableName)) {
+  // Allow schema-qualified names like public.users or `schema`.`table`
+  const validPattern = /^[`"]?[a-zA-Z_][a-zA-Z0-9_]*[`"]?(?:\.[`"]?[a-zA-Z_][a-zA-Z0-9_]*[`"]?)?$/;
+  if (!validPattern.test(tableName.trim())) {
     return {
       valid: false,
       error: "Table name contains invalid characters. Only letters, numbers, underscores, and dots are allowed.",
@@ -108,6 +122,22 @@ export function validateTableName(tableName: string): ValidationResult {
 
   if (tableName.length > 128) {
     return { valid: false, error: "Table name is too long (max 128 characters)." };
+  }
+
+  return { valid: true };
+}
+
+export function validateColumnName(columnName: string): ValidationResult {
+  if (!columnName || columnName.trim().length === 0) {
+    return { valid: false, error: "Column name cannot be empty." };
+  }
+
+  const validPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+  if (!validPattern.test(columnName.trim())) {
+    return {
+      valid: false,
+      error: "Column name contains invalid characters.",
+    };
   }
 
   return { valid: true };
