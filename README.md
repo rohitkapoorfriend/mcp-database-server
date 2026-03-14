@@ -2,9 +2,46 @@
 
 An MCP server that lets AI agents (Claude, Cursor, etc.) query and explore databases safely. Built with TypeScript, supports PostgreSQL, MySQL, and MongoDB.
 
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-green)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ed?logo=docker&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-Protocol-8b5cf6)
+
 ## Why?
 
 I wanted a way to let Claude and other AI tools talk to my databases without giving them raw access. This server sits in between — it validates queries, blocks writes by default, and formats results so the AI can actually understand them.
+
+## Architecture
+
+```
+AI Agent (Claude / Cursor / GPT)
+          │
+          │  JSON-RPC over stdio (MCP Protocol)
+          ▼
+┌─────────────────────────────────────┐
+│         MCP DATABASE SERVER         │
+│           TypeScript · Node.js      │
+│                                     │
+│  ┌──────────────┐  ┌─────────────┐  │
+│  │ Safety Layer │  │  5 Tools    │  │
+│  │              │  │             │  │
+│  │ · SQL inject │  │ execute_    │  │
+│  │   detection  │  │   query     │  │
+│  │ · Write-op   │  │ get_schema  │  │
+│  │   blocking   │  │ describe_   │  │
+│  │ · Row limits │  │   table     │  │
+│  │ · Timeouts   │  │ sample_data │  │
+│  │ · Sanitizer  │  │ table_stats │  │
+│  └──────────────┘  └─────────────┘  │
+└──────────┬──────────────────────────┘
+           │  DB Adapter (factory pattern)
+    ┌──────┼──────┐
+    ▼      ▼      ▼
+  [PG]  [MySQL] [MongoDB]
+```
+
+Each query passes through the safety layer before reaching the database adapter. The adapter pattern means adding a new database is one file with a standard interface.
 
 ## Features
 
@@ -22,7 +59,8 @@ I wanted a way to let Claude and other AI tools talk to my databases without giv
 
 ```bash
 # Clone and install
-git clone <repo-url> && cd mcp-database-server
+git clone https://github.com/rohitkapoorfriend/mcp-database-server
+cd mcp-database-server
 npm install
 
 # Configure your database
@@ -110,7 +148,6 @@ Add to your Cursor MCP settings:
 ### Claude Code CLI
 
 ```bash
-# Run directly
 DB_TYPE=postgresql DB_HOST=localhost DB_NAME=mydb DB_USER=postgres DB_PASSWORD=pass node build/index.js
 ```
 
@@ -193,14 +230,6 @@ docker-compose up -d
 # - order_items (30 rows)
 ```
 
-## How it works
-
-```
-AI Agent (Claude/Cursor) → MCP (JSON-RPC over stdio) → This Server → Safety Layer → DB Adapter → PostgreSQL/MySQL/MongoDB
-```
-
-The safety layer validates every query before it hits the database — checks for injection patterns, blocks write operations in read-only mode, and enforces row/timeout limits.
-
 ## Testing
 
 ```bash
@@ -256,6 +285,14 @@ src/
     ├── formatter.ts      # Result formatting (table/json/csv)
     └── logger.ts         # Structured stderr logging
 ```
+
+## Roadmap
+
+- [ ] SSE transport support (HTTP mode)
+- [ ] SQLite adapter
+- [ ] Redis adapter
+- [ ] Connection pooling metrics tool
+- [ ] Rate limiting per client
 
 ## Contributing
 
